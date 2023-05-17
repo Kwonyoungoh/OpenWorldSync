@@ -83,9 +83,7 @@ public:
 	void SendDataToServer();
 private:
 	FTimerHandle SendDataTimerHandle;
-	// Socket
 	FSocket* SendSocket;
-	// remote endpoint
 	FIPv4Endpoint RemoteEndpoint;
 };
 
