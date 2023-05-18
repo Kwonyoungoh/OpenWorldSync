@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Engine/EngineTypes.h"
 #include "InputActionValue.h"
 //network
 #include "Interfaces/IHttpBase.h"
@@ -55,7 +56,6 @@ class AOpenWorldSyncCharacter : public ACharacter
 
 public:
 	AOpenWorldSyncCharacter();
-	
 
 protected:
 
@@ -72,6 +72,7 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 public:
 	/** Returns CameraBoom subobject **/
@@ -81,6 +82,7 @@ public:
 
 	FString CreateSendData();
 	void SendDataToServer();
+	bool isFirst = true;
 private:
 	FTimerHandle SendDataTimerHandle;
 	FSocket* SendSocket;

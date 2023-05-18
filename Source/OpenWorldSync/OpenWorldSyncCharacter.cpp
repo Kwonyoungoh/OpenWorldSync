@@ -14,6 +14,13 @@
 //////////////////////////////////////////////////////////////////////////
 // AOpenWorldSyncCharacter
 
+// 플래그
+enum class conn_flags : uint8_t {
+	CONNECT_FLAG = 0X01,
+	DISCONNECT_FLAG = 0X02,
+	DATA_FLAG = 0X03
+};
+
 AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 {
 	// Set size for collision capsule
@@ -60,7 +67,7 @@ AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 
 	// Set RemoteEndpoint
 	FIPv4Address RemoteAddress;
-	FIPv4Address::Parse(TEXT("172.26.246.43"), RemoteAddress);
+	FIPv4Address::Parse(TEXT("172.28.9.48"), RemoteAddress);
 	int32 RemotePort = 12345;
 	RemoteEndpoint = FIPv4Endpoint(RemoteAddress, RemotePort);
 
@@ -84,8 +91,28 @@ void AOpenWorldSyncCharacter::BeginPlay()
 		}
 	}
 
-	// set up timer to call SendDataToServer every 0.1 seconds
+	// 타이머 시간조정
 	GetWorldTimerManager().SetTimer(SendDataTimerHandle, this, &AOpenWorldSyncCharacter::SendDataToServer, 0.1f, true, 0.1f);
+}
+
+void AOpenWorldSyncCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	  
+	Super::EndPlay(EndPlayReason);
+
+	GetWorldTimerManager().ClearTimer(SendDataTimerHandle);
+	
+	if (SendSocket != nullptr)
+	{
+		// 종료 패킷 전송
+		uint8_t DisconnectFlag = (uint8_t)conn_flags::DISCONNECT_FLAG;
+		int32 BytesSent = 0;
+		SendSocket->SendTo(&DisconnectFlag, 1, BytesSent, *RemoteEndpoint.ToInternetAddr());
+
+		SendSocket->Close();
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(SendSocket);
+		SendSocket = nullptr;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -149,6 +176,7 @@ void AOpenWorldSyncCharacter::Look(const FInputActionValue& Value)
 // CreateSendData()
 FString AOpenWorldSyncCharacter::CreateSendData() 
 {
+
 	FVector Location = GetActorLocation();
 	FRotator Rotation = GetActorRotation();
 	FVector Velocity = GetCharacterMovement()->Velocity;
@@ -175,8 +203,30 @@ void AOpenWorldSyncCharacter::SendDataToServer()
 
 	UE_LOG(LogTemp, Warning, TEXT("SendData : %s"), *DataToSend);
 
-	if (!SendSocket->SendTo((uint8*)Converter.Get(), Converter.Length(), BytesSent, *RemoteEndpoint.ToInternetAddr()))
+	if (isFirst)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to send data!"));
+		uint8 header_byte = static_cast<uint8>(conn_flags::CONNECT_FLAG);
+		TArray<uint8> InitialPacket;
+		InitialPacket.Add(header_byte);
+		InitialPacket.Append((uint8*)Converter.Get(), Converter.Length());
+
+		if (!SendSocket->SendTo(InitialPacket.GetData(), InitialPacket.Num(), BytesSent, *RemoteEndpoint.ToInternetAddr()))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to send initial data!"));
+		}
+
+		isFirst = false;
+	}
+	else
+	{
+		uint8 header_byte = static_cast<uint8>(conn_flags::DATA_FLAG);
+		TArray<uint8> DataPacket;
+		DataPacket.Add(header_byte);
+		DataPacket.Append((uint8*)Converter.Get(), Converter.Length());
+
+		if (!SendSocket->SendTo(DataPacket.GetData(), DataPacket.Num(), BytesSent, *RemoteEndpoint.ToInternetAddr()))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to send data!"));
+		}
 	}
 }

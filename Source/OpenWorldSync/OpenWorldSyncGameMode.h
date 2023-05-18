@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "GameFramework/GameModeBase.h"
 #include "OpenWorldSyncGameMode.generated.h"
 
