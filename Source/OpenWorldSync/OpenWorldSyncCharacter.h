@@ -83,6 +83,8 @@ public:
 	FString CreateSendData();
 	void SendDataToServer();
 	bool isFirst = true;
+	FVector PreviousLocation;
+
 private:
 	FTimerHandle SendDataTimerHandle;
 	FSocket* SendSocket;

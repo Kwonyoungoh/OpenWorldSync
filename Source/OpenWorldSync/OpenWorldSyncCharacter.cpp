@@ -187,6 +187,14 @@ FString AOpenWorldSyncCharacter::CreateSendData()
 	JsonObject->SetStringField(TEXT("Rotation"), Rotation.ToString());
 	JsonObject->SetStringField(TEXT("Velocity"), Velocity.ToString());
 
+	// 같은 위치면 전송X
+	if (Location == PreviousLocation)
+	{
+		return "";
+	}
+
+	PreviousLocation = Location;
+
 	FString OutputString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
 	FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
@@ -197,6 +205,11 @@ FString AOpenWorldSyncCharacter::CreateSendData()
 void AOpenWorldSyncCharacter::SendDataToServer()
 {
 	FString DataToSend = CreateSendData();
+
+	if (DataToSend.IsEmpty())
+	{
+		return;
+	}
 
 	FTCHARToUTF8 Converter(*DataToSend);
 	int32 BytesSent = 0;
