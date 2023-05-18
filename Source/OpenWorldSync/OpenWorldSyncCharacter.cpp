@@ -18,7 +18,8 @@
 enum class conn_flags : uint8_t {
 	CONNECT_FLAG = 0X01,
 	DISCONNECT_FLAG = 0X02,
-	DATA_FLAG = 0X03
+	DATA_FLAG = 0X03,
+	CHANG_CHUNK_FLAG = 0X04
 };
 
 AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
@@ -173,19 +174,10 @@ void AOpenWorldSyncCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-// CreateSendData()
 FString AOpenWorldSyncCharacter::CreateSendData() 
 {
 
 	FVector Location = GetActorLocation();
-	FRotator Rotation = GetActorRotation();
-	FVector Velocity = GetCharacterMovement()->Velocity;
-
-	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-
-	JsonObject->SetStringField(TEXT("Location"), Location.ToString());
-	JsonObject->SetStringField(TEXT("Rotation"), Rotation.ToString());
-	JsonObject->SetStringField(TEXT("Velocity"), Velocity.ToString());
 
 	// 같은 위치면 전송X
 	if (Location == PreviousLocation)
@@ -194,6 +186,28 @@ FString AOpenWorldSyncCharacter::CreateSendData()
 	}
 
 	PreviousLocation = Location;
+
+	FRotator Rotation = GetActorRotation();
+	FVector Velocity = GetCharacterMovement()->Velocity;
+
+	// 청크 계산
+	int32 ChunkX = FMath::FloorToInt(Location.X / ChunkUnit);
+	int32 ChunkY = FMath::FloorToInt(Location.Y / ChunkUnit);
+	FString ChunkInfo = FString::Printf(TEXT("%d:%d"), ChunkX, ChunkY);
+
+	if (ChunkInfo != PreviousChunkInfo)
+	{
+		isChunkChange = true;
+	}
+
+	PreviousChunkInfo = ChunkInfo;
+
+	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+
+	JsonObject->SetStringField(TEXT("ChunkInfo"), ChunkInfo);
+	JsonObject->SetStringField(TEXT("Location"), Location.ToString());
+	JsonObject->SetStringField(TEXT("Rotation"), Rotation.ToString());
+	JsonObject->SetStringField(TEXT("Velocity"), Velocity.ToString());
 
 	FString OutputString;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
@@ -229,6 +243,18 @@ void AOpenWorldSyncCharacter::SendDataToServer()
 		}
 
 		isFirst = false;
+	}else if(isChunkChange)
+	{
+		uint8 header_byte = static_cast<uint8>(conn_flags::CHANG_CHUNK_FLAG);
+		TArray<uint8> ChunkPacket;
+		ChunkPacket.Add(header_byte);
+		ChunkPacket.Append((uint8*)Converter.Get(), Converter.Length());
+
+		if (!SendSocket->SendTo(ChunkPacket.GetData(), ChunkPacket.Num(), BytesSent, *RemoteEndpoint.ToInternetAddr()))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to send chunk data!"));
+		}
+		isChunkChange = false;
 	}
 	else
 	{

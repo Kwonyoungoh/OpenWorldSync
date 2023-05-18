@@ -83,7 +83,11 @@ public:
 	FString CreateSendData();
 	void SendDataToServer();
 	bool isFirst = true;
+	bool isChunkChange = false;
+	FString PreviousChunkInfo;
 	FVector PreviousLocation;
+
+	const int ChunkUnit = 500;
 
 private:
 	FTimerHandle SendDataTimerHandle;
