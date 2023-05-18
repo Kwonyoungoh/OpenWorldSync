@@ -105,10 +105,26 @@ void AOpenWorldSyncCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	
 	if (SendSocket != nullptr)
 	{
-		// 종료 패킷 전송
-		uint8_t DisconnectFlag = (uint8_t)conn_flags::DISCONNECT_FLAG;
+		TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+		// 청크데이터 포함
+		JsonObject->SetStringField(TEXT("Chunk"), PrevChunkInfo);
+		FString OutputString;
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+		FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+
+		FTCHARToUTF8 Converter(*OutputString);
 		int32 BytesSent = 0;
-		SendSocket->SendTo(&DisconnectFlag, 1, BytesSent, *RemoteEndpoint.ToInternetAddr());
+
+		// 종료 패킷 전송
+		uint8 header_byte = static_cast<uint8>(conn_flags::DISCONNECT_FLAG);
+		TArray<uint8> DisconnectPacket;
+		DisconnectPacket.Add(header_byte);
+		DisconnectPacket.Append((uint8*)Converter.Get(), Converter.Length());
+
+		if (!SendSocket->SendTo(DisconnectPacket.GetData(), DisconnectPacket.Num(), BytesSent, *RemoteEndpoint.ToInternetAddr()))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to send Disconnect data!"));
+		}
 
 		SendSocket->Close();
 		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(SendSocket);
@@ -180,12 +196,12 @@ FString AOpenWorldSyncCharacter::CreateSendData()
 	FVector Location = GetActorLocation();
 
 	// 같은 위치면 전송X
-	if (Location == PreviousLocation)
+	if (Location == PrevLocation)
 	{
 		return "";
 	}
 
-	PreviousLocation = Location;
+	PrevLocation = Location;
 
 	FRotator Rotation = GetActorRotation();
 	FVector Velocity = GetCharacterMovement()->Velocity;
@@ -195,16 +211,17 @@ FString AOpenWorldSyncCharacter::CreateSendData()
 	int32 ChunkY = FMath::FloorToInt(Location.Y / ChunkUnit);
 	FString ChunkInfo = FString::Printf(TEXT("%d:%d"), ChunkX, ChunkY);
 
-	if (ChunkInfo != PreviousChunkInfo)
-	{
-		isChunkChange = true;
-	}
-
-	PreviousChunkInfo = ChunkInfo;
-
 	TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
 
-	JsonObject->SetStringField(TEXT("ChunkInfo"), ChunkInfo);
+	if (ChunkInfo != PrevChunkInfo && !isFirst)
+	{
+		isChunkChange = true;
+		JsonObject->SetStringField(TEXT("PrevChunk"), PrevChunkInfo);
+	}
+
+	PrevChunkInfo = ChunkInfo;
+
+	JsonObject->SetStringField(TEXT("Chunk"), ChunkInfo);
 	JsonObject->SetStringField(TEXT("Location"), Location.ToString());
 	JsonObject->SetStringField(TEXT("Rotation"), Rotation.ToString());
 	JsonObject->SetStringField(TEXT("Velocity"), Velocity.ToString());
