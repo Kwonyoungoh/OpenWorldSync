@@ -19,7 +19,7 @@ enum class conn_flags : uint8_t {
 	CONNECT_FLAG = 0X01,
 	DISCONNECT_FLAG = 0X02,
 	DATA_FLAG = 0X03,
-	CHANG_CHUNK_FLAG = 0X04
+	CHANGE_CHUNK_FLAG = 0X04
 };
 
 AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
@@ -68,7 +68,7 @@ AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 
 	// Set RemoteEndpoint
 	FIPv4Address RemoteAddress;
-	FIPv4Address::Parse(TEXT("172.28.9.48"), RemoteAddress);
+	FIPv4Address::Parse(TEXT("172.28.13.237"), RemoteAddress);
 	int32 RemotePort = 12345;
 	RemoteEndpoint = FIPv4Endpoint(RemoteAddress, RemotePort);
 
@@ -262,7 +262,7 @@ void AOpenWorldSyncCharacter::SendDataToServer()
 		isFirst = false;
 	}else if(isChunkChange)
 	{
-		uint8 header_byte = static_cast<uint8>(conn_flags::CHANG_CHUNK_FLAG);
+		uint8 header_byte = static_cast<uint8>(conn_flags::CHANGE_CHUNK_FLAG);
 		TArray<uint8> ChunkPacket;
 		ChunkPacket.Add(header_byte);
 		ChunkPacket.Append((uint8*)Converter.Get(), Converter.Length());
