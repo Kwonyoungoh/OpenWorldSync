@@ -68,8 +68,8 @@ AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 
 	// Set RemoteEndpoint
 	FIPv4Address RemoteAddress;
-	FIPv4Address::Parse(TEXT("172.28.13.237"), RemoteAddress);
-	int32 RemotePort = 12345;
+	FIPv4Address::Parse(TEXT("127.0.0.1"), RemoteAddress);
+	int32 RemotePort = 30000;
 	RemoteEndpoint = FIPv4Endpoint(RemoteAddress, RemotePort);
 
 	// Set SendSocket to non-blocking mode
