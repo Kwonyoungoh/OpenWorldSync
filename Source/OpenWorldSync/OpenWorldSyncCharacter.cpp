@@ -61,12 +61,12 @@ AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 	// Create SendSocket
 	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 
-	// FUdpSocketBuilder()는 언리얼 패키징시 작동하지 않습니다.
+	// UDP : NAME_DGram, TCP : NAME_Stream
 	SendSocket = SocketSubsystem->CreateSocket(NAME_DGram, TEXT("SendSocket"), false);
 
 	// Set RemoteEndpoint
 	FIPv4Address RemoteAddress;
-	FIPv4Address::Parse(TEXT("127.0.0.1"), RemoteAddress);
+	FIPv4Address::Parse(TEXT("222.107.137.130"), RemoteAddress);
 	int32 RemotePort = 30000;
 	RemoteEndpoint = FIPv4Endpoint(RemoteAddress, RemotePort);
 
