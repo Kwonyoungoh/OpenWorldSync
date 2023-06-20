@@ -60,11 +60,9 @@ AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 
 	// Create SendSocket
 	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-	SendSocket = FUdpSocketBuilder(TEXT("SendSocket"))
-		.AsReusable()
-		.WithBroadcast()
-		.BoundToPort(3000)
-		.Build();
+
+	// FUdpSocketBuilder()는 언리얼 패키징시 작동하지 않습니다.
+	SendSocket = SocketSubsystem->CreateSocket(NAME_DGram, TEXT("SendSocket"), false);
 
 	// Set RemoteEndpoint
 	FIPv4Address RemoteAddress;
