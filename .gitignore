@@ -885,4 +885,4 @@ FodyWeavers.xsd
 *.exe
 *.out
 *.app
-/play/Windows
+/play
