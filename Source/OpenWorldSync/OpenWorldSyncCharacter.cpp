@@ -66,7 +66,7 @@ AOpenWorldSyncCharacter::AOpenWorldSyncCharacter()
 
 	// Set RemoteEndpoint
 	FIPv4Address RemoteAddress;
-	FIPv4Address::Parse(TEXT("222.107.137.130"), RemoteAddress);
+	FIPv4Address::Parse(TEXT("Your Server IP"), RemoteAddress);
 	int32 RemotePort = 30000;
 	RemoteEndpoint = FIPv4Endpoint(RemoteAddress, RemotePort);
 
