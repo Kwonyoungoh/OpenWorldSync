@@ -12,4 +12,9 @@ AOpenWorldSyncGameMode::AOpenWorldSyncGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
+	static ConstructorHelpers::FClassFinder<APlayerController> PlayerControllerBPClass(TEXT("/Game/Blueprints/MyMyPlayerController"));
+	if (PlayerControllerBPClass.Class != NULL)
+	{
+		PlayerControllerClass = PlayerControllerBPClass.Class;
+	}
 }
